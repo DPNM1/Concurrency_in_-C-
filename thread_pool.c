@@ -70,7 +70,7 @@ void queue_push(Queue *queue, Jobs job) {
     printf("Job pushed\n");
   }
   pthread_mutex_unlock(&queue->lock);
-  pthread_cond_broadcast(&queue->condition);
+  pthread_cond_signal(&queue->condition);
 }
 
 int queue_pop(Queue *queue, Jobs *job) {
