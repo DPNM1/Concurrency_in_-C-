@@ -11,11 +11,20 @@ typedef struct {
   int tail;
   int count;
 } Queue;
+typedef struct {
+  Queue *queue;
+  Jobs job;
+} Producer;
+
+typedef struct {
+  Queue *queue;
+} Worker;
 
 void print_me(void *arg) {
   int *a = arg;
   printf("The value is %d\n", *a);
 }
+
 void increment(void *arg) {
   int *a = arg;
   *a += 1;
@@ -32,6 +41,7 @@ void queue_push(Queue *queue, Jobs job) {
     printf("MAX JOBS IN QUEUE");
   }
 }
+
 Jobs queue_pop(Queue *queue) {
   if (queue->count != 0) {
     Jobs job = queue->jobs[queue->head];
@@ -42,11 +52,27 @@ Jobs queue_pop(Queue *queue) {
     printf("NO EXISTING JOB");
   }
 }
+
 void queue_init(Queue *queue) {
   queue->head = 0;
   queue->tail = 0;
   queue->count = 0;
 }
+
+void *Produce(void *arg) {
+  Producer *args = arg;
+  queue_push(args->queue, args->job);
+  return NULL;
+}
+
+void *Work(void *arg) {
+  Worker *args = arg;
+  Jobs work = queue_pop(args->queue);
+  work.function(work.arg);
+  printf("Work Completed");
+  return NULL;
+}
+
 int main() {
   Jobs job1, job2;
   Queue q1;
@@ -56,11 +82,16 @@ int main() {
   job1.arg = &x;
   job2.function = increment;
   job2.arg = &x;
-  queue_push(&q1, job1);
-  queue_push(&q1, job2);
-  Jobs popped1 = queue_pop(&q1);
-  popped1.function(popped1.arg);
-  Jobs popped2 = queue_pop(&q1);
-  popped2.function(popped2.arg);
+  Producer p;
+  p.queue = &q1;
+  p.job = job2;
+  Worker w;
+  w.queue = &q1;
+  pthread_t producer;
+  pthread_t worker1, worker2;
+  pthread_create(&producer, NULL, &Produce, &p);
+  pthread_create(&worker1, NULL, &Work, &w);
+  pthread_join(producer, NULL);
+  pthread_join(worker1, NULL);
   return 0;
 }
